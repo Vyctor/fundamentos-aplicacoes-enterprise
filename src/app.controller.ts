@@ -3,20 +3,26 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
+  NotFoundException,
+  Param,
   Post,
   Req,
+  Res,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { extname } from 'path';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { createReadStream, statSync } from 'node:fs';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma.service';
+import path from 'node:path';
 
 @Controller()
 export class AppController {
@@ -90,6 +96,51 @@ export class AppController {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
+    });
+  }
+
+  @Get('stream/:videoId')
+  @Header('Content-Type', 'video/mp4')
+  async streamVideo(
+    @Param('videoId') videoId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<any> {
+    const video = await this.prismaService.video.findUnique({
+      where: {
+        id: videoId,
+      },
+    });
+
+    if (!video) {
+      throw new NotFoundException('Video not found');
+    }
+
+    const videoPath = path.join('.', video.url);
+    const fileSize = statSync(videoPath).size;
+
+    const range = req.headers.range;
+
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+      const chunkSize = end - start + 1;
+      const file = createReadStream(videoPath, { start, end });
+
+      res.writeHead(HttpStatus.PARTIAL_CONTENT, {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunkSize,
+        'Content-Type': 'video/mp4',
+      });
+      return file.pipe(res);
+    }
+
+    res.writeHead(HttpStatus.OK, {
+      'Content-Length': fileSize,
+      'Content-Type': 'video/mp4',
     });
   }
 }
