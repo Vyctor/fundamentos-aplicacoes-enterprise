@@ -1,0 +1,12 @@
+name: fakeflix
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: fakeflix-db
+    environment:
+      - POSTGRES_USER=fakeflix
+      - POSTGRES_PASSWORD=fakeflix
+    ports:
+      - '5432:5432'
+    volumes:
+      - .docker/postgres-data:/var/lib/postgresql/data
