@@ -20,21 +20,16 @@ import { Request, Response } from 'express';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { createReadStream, statSync } from 'node:fs';
-import { AppService } from './app.service';
-import { PrismaService } from './prisma.service';
 import path from 'node:path';
+import { MediaPlayerService } from '@src/core/media-player.service';
+import { ContentManagementService } from '@src/core/content-management.service';
 
 @Controller()
-export class AppController {
+export class ContentController {
   constructor(
-    private readonly appService: AppService,
-    private readonly prismaService: PrismaService,
+    private readonly contentManagementService: ContentManagementService,
+    private readonly mediaPlayerService: MediaPlayerService,
   ) {}
-
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
-  }
 
   @Post('video')
   @HttpCode(HttpStatus.CREATED)
@@ -84,18 +79,12 @@ export class AppController {
       );
     }
 
-    return await this.prismaService.video.create({
-      data: {
-        id: randomUUID(),
-        title: contentData.title,
-        description: contentData.description,
-        url: videoFile.path,
-        thumbnailUrl: thumbnailFile.path,
-        sizeInKb: videoFile.size,
-        duration: 100,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+    return await this.contentManagementService.createContent({
+      title: contentData.title,
+      description: contentData.description,
+      url: videoFile.path,
+      thumbnailUrl: thumbnailFile.path,
+      sizeInKb: videoFile.size,
     });
   }
 
@@ -106,26 +95,20 @@ export class AppController {
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<any> {
-    const video = await this.prismaService.video.findUnique({
-      where: {
-        id: videoId,
-      },
-    });
+    const video = await this.mediaPlayerService.prepareStreaming(videoId);
 
     if (!video) {
       throw new NotFoundException('Video not found');
     }
 
-    const videoPath = path.join('.', video.url);
+    const videoPath = path.join('.', video);
     const fileSize = statSync(videoPath).size;
-
     const range = req.headers.range;
 
     if (range) {
       const parts = range.replace(/bytes=/, '').split('-');
       const start = parseInt(parts[0], 10);
       const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-
       const chunkSize = end - start + 1;
       const file = createReadStream(videoPath, { start, end });
 

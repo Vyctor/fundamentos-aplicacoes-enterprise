@@ -1,8 +1,9 @@
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '@src/app.module';
-import { PrismaService } from '@src/prisma.service';
+import { PrismaService } from '@src/persistence/prisma.service';
 import fs from 'fs';
+import path from 'path';
 import request from 'supertest';
 
 describe('VideoController (e2e)', () => {
@@ -49,8 +50,8 @@ describe('VideoController (e2e)', () => {
 
       await request(app.getHttpServer())
         .post('/video')
-        .attach('video', './test/fixtures/sample.mp4')
-        .attach('thumbnail', './test/fixtures/sample.jpg')
+        .attach('video', path.resolve(__dirname, './fixtures/sample.mp4'))
+        .attach('thumbnail', path.resolve(__dirname, './fixtures/sample.jpg'))
         .field('title', video.title)
         .field('description', video.description)
         .expect(HttpStatus.CREATED)
@@ -77,7 +78,7 @@ describe('VideoController (e2e)', () => {
 
       await request(app.getHttpServer())
         .post('/video')
-        .attach('video', './test/fixtures/sample.mp4')
+        .attach('video', path.resolve(__dirname, './fixtures/sample.mp4'))
         .field('title', video.title)
         .field('description', video.description)
         .expect(HttpStatus.BAD_REQUEST)
@@ -101,8 +102,8 @@ describe('VideoController (e2e)', () => {
 
       await request(app.getHttpServer())
         .post('/video')
-        .attach('video', './test/fixtures/sample.mp3')
-        .attach('thumbnail', './test/fixtures/sample.jpg')
+        .attach('video', path.resolve(__dirname, './fixtures/sample.mp3'))
+        .attach('thumbnail', path.resolve(__dirname, './fixtures/sample.jpg'))
         .field('title', video.title)
         .field('description', video.description)
         .expect(HttpStatus.BAD_REQUEST)
@@ -119,8 +120,8 @@ describe('VideoController (e2e)', () => {
     it('streams a video', async () => {
       const { body: sampleVideo } = await request(app.getHttpServer())
         .post('/video')
-        .attach('video', './test/fixtures/sample.mp4')
-        .attach('thumbnail', './test/fixtures/sample.jpg')
+        .attach('video', path.resolve(__dirname, './fixtures/sample.mp4'))
+        .attach('thumbnail', path.resolve(__dirname, './fixtures/sample.jpg'))
         .field('title', 'Test Video')
         .field('description', 'This is a test video')
         .expect(HttpStatus.CREATED);
