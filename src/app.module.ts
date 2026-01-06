@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { PrismaService } from '@src/persistence/prisma.service';
 import { ConfigModule } from '@nestjs/config';
 import { ContentController } from './http/rest/controller/content.controller';
-import { ContentManagementService } from './core/content-management.service';
-import { MediaPlayerService } from './core/media-player.service';
+import { ContentManagementService } from './core/service/content-management.service';
+import { MediaPlayerService } from './core/service/media-player.service';
 
 @Module({
   imports: [ConfigModule.forRoot()],
